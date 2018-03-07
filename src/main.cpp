@@ -17,7 +17,7 @@ CPE/CSC 471 Lab base code Wood/Dunn/Eckhardt
 #include <glm/gtc/matrix_transform.hpp>
 using namespace std;
 using namespace glm;
-//shared_ptr<Shape> shape;
+shared_ptr<Shape> boat;
 shared_ptr<Shape> skybox;
 
 
@@ -37,7 +37,7 @@ public:
 	camera()
 	{
 		w = a = s = d = 0;
-		pos = rot = glm::vec3(0, 0, 0);
+		pos = rot = glm::vec3(0, -4, 0);
 	}
 	glm::mat4 process(double ftime)
 	{
@@ -86,6 +86,9 @@ public:
 	//texture data
 	GLuint Texture,HeightTex;
 	GLuint Texture2,HeightTex2;
+    GLuint Texture3,HeightTex3;
+    GLuint Texture4,HeightTex4;
+    GLuint OceanTex;
     GLuint TextureSky;
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
@@ -162,7 +165,7 @@ public:
 		glViewport(0, 0, width, height);
 	}
     
-#define MESHSIZE 100
+#define MESHSIZE 300
 	void init_mesh()
 	{
 		//generate the VAO
@@ -185,7 +188,7 @@ public:
 		glEnableVertexAttribArray(0);
 		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 		//tex coords
-		float t = 1. / 100;
+		float t = 1. / (float)MESHSIZE;
 		vec2 tex[MESHSIZE * MESHSIZE * 4];
 		for (int x = 0; x<MESHSIZE; x++)
 			for (int y = 0; y < MESHSIZE; y++)
@@ -228,6 +231,13 @@ public:
 		string resourceDirectory = "../../resources";
 		int width, height, channels;
 		char filepath[1000];
+        // *************************************************
+        // Boat
+        // *************************************************
+        boat = make_shared<Shape>();
+        boat->loadMesh(resourceDirectory + "/SeaAngler.obj");
+        boat->resize();
+        boat->init();
         
         // *************************************************
         // Skybox
@@ -236,12 +246,12 @@ public:
         skybox->loadMesh(resourceDirectory + "/sphere.obj");
         skybox->resize();
         skybox->init();
-        //texture 2
+        //texture skybox
         string str = resourceDirectory + "/sky.jpg";
         strcpy(filepath, str.c_str());
         unsigned char* data = stbi_load(filepath, &width, &height, &channels, 4);
         glGenTextures(1, &TextureSky);
-        glActiveTexture(GL_TEXTURE4);
+        glActiveTexture(GL_TEXTURE10);
         glBindTexture(GL_TEXTURE_2D, TextureSky);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -252,11 +262,11 @@ public:
         GLuint SkyTexLocation = glGetUniformLocation(skyboxshader->pid, "skytex");
         // Then bind the uniform samplers to texture units:
         glUseProgram(skyboxshader->pid);
-        glUniform1i(SkyTexLocation, 4);
+        glUniform1i(SkyTexLocation, 10);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-		//texture 0 normal map
+		//texture 1 normal map
 		str = resourceDirectory + "/nm1.png";
 		strcpy(filepath, str.c_str());
 		data = stbi_load(filepath, &width, &height, &channels, 4);
@@ -298,7 +308,7 @@ public:
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
         
-        //texture 3 height map
+        //texture 2 height map
         str = resourceDirectory + "/wh2.jpg";
         strcpy(filepath, str.c_str());
         data = stbi_load(filepath, &width, &height, &channels, 4);
@@ -311,17 +321,81 @@ public:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
+        
+        //texture 3 normal
+        str = resourceDirectory + "/nm3.png";
+        strcpy(filepath, str.c_str());
+        data = stbi_load(filepath, &width, &height, &channels, 4);
+        glGenTextures(1, &Texture3);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, Texture3);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        
+        //texture 3 height map
+        str = resourceDirectory + "/wh3.png";
+        strcpy(filepath, str.c_str());
+        data = stbi_load(filepath, &width, &height, &channels, 4);
+        glGenTextures(1, &HeightTex3);
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, HeightTex3);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        
+        //texture 4 normal
+        str = resourceDirectory + "/nm4.png";
+        strcpy(filepath, str.c_str());
+        data = stbi_load(filepath, &width, &height, &channels, 4);
+        glGenTextures(1, &Texture4);
+        glActiveTexture(GL_TEXTURE6);
+        glBindTexture(GL_TEXTURE_2D, Texture4);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        
+        //texture 4 height map
+        str = resourceDirectory + "/wh4.png";
+        strcpy(filepath, str.c_str());
+        data = stbi_load(filepath, &width, &height, &channels, 4);
+        glGenTextures(1, &HeightTex4);
+        glActiveTexture(GL_TEXTURE7);
+        glBindTexture(GL_TEXTURE_2D, HeightTex4);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
 
 		GLuint Tex1Location = glGetUniformLocation(heightshader->pid, "n1");
 		GLuint Tex2Location = glGetUniformLocation(heightshader->pid, "h1");
         GLuint Tex3Location = glGetUniformLocation(heightshader->pid, "n2");
         GLuint Tex4Location = glGetUniformLocation(heightshader->pid, "h2");
+        GLuint Tex5Location = glGetUniformLocation(heightshader->pid, "n3");
+        GLuint Tex6Location = glGetUniformLocation(heightshader->pid, "h3");
+        GLuint Tex7Location = glGetUniformLocation(heightshader->pid, "n4");
+        GLuint Tex8Location = glGetUniformLocation(heightshader->pid, "h4");
 		// Then bind the uniform samplers to texture units:
 		glUseProgram(heightshader->pid);
 		glUniform1i(Tex1Location, 1);
 		glUniform1i(Tex2Location, 0);
         glUniform1i(Tex3Location, 3);
         glUniform1i(Tex4Location, 2);
+        glUniform1i(Tex5Location, 5);
+        glUniform1i(Tex6Location, 4);
+        glUniform1i(Tex7Location, 7);
+        glUniform1i(Tex8Location, 6);
 
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -370,6 +444,7 @@ public:
 		heightshader->addUniform("camoff");
 		heightshader->addUniform("campos");
         heightshader->addUniform("texoff");
+        heightshader->addUniform("texoff2");
 		heightshader->addAttribute("vertPos");
 		heightshader->addAttribute("vertTex");
 	}
@@ -435,12 +510,16 @@ public:
         
         // Moving simulated
         static vec2 texoff = vec2(0.,0.);
-        texoff.x += .0002;
+        texoff.x += .00005;
         texoff.y -= .00003;
+        static vec2 texoff2 = vec2(0.,0.);
+        texoff2.x += .0002;
         glUniform2fv(heightshader->getUniform("texoff"), 1, &texoff[0]);
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glUniform2fv(heightshader->getUniform("texoff2"), 1, &texoff2[0]);
+//        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(1.,1.,1.));
 		glm::mat4 TransY = glm::translate(glm::mat4(1.0f), glm::vec3(-50.0f, -3.0f, -50));
-		M = TransY;
+		M = TransY*S;
 		glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glUniformMatrix4fv(heightshader->getUniform("P"), 1, GL_FALSE, &P[0][0]);
 		glUniformMatrix4fv(heightshader->getUniform("V"), 1, GL_FALSE, &V[0][0]);
@@ -462,6 +541,15 @@ public:
         glBindTexture(GL_TEXTURE_2D, HeightTex2);
         glActiveTexture(GL_TEXTURE3);
         glBindTexture(GL_TEXTURE_2D, Texture2);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, HeightTex3);
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, Texture3);
+        glActiveTexture(GL_TEXTURE6);
+        glBindTexture(GL_TEXTURE_2D, HeightTex4);
+        glActiveTexture(GL_TEXTURE7);
+        glBindTexture(GL_TEXTURE_2D, Texture4);
+        
 		glDrawElements(GL_TRIANGLES, MESHSIZE*MESHSIZE*6, GL_UNSIGNED_SHORT, (void*)0);
 
 		heightshader->unbind();
