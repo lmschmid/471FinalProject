@@ -37,7 +37,7 @@ public:
 	camera()
 	{
 		w = a = s = d = 0;
-		pos = rot = glm::vec3(0, -4, 0);
+		pos = rot = glm::vec3(0, -4, -10);
 	}
 	glm::mat4 process(double ftime)
 	{
@@ -251,7 +251,7 @@ public:
         strcpy(filepath, str.c_str());
         unsigned char* data = stbi_load(filepath, &width, &height, &channels, 4);
         glGenTextures(1, &TextureSky);
-        glActiveTexture(GL_TEXTURE10);
+        glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, TextureSky);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -262,7 +262,7 @@ public:
         GLuint SkyTexLocation = glGetUniformLocation(skyboxshader->pid, "skytex");
         // Then bind the uniform samplers to texture units:
         glUseProgram(skyboxshader->pid);
-        glUniform1i(SkyTexLocation, 10);
+        glUniform1i(SkyTexLocation, 0);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -295,7 +295,7 @@ public:
 		glGenerateMipmap(GL_TEXTURE_2D);
         
         //texture 2 normal map
-        str = resourceDirectory + "/nm2.png";
+        str = resourceDirectory + "/nm5.png";
         strcpy(filepath, str.c_str());
         data = stbi_load(filepath, &width, &height, &channels, 4);
         glGenTextures(1, &Texture2);
@@ -309,7 +309,7 @@ public:
         glGenerateMipmap(GL_TEXTURE_2D);
         
         //texture 2 height map
-        str = resourceDirectory + "/wh2.jpg";
+        str = resourceDirectory + "/wh5.jpg";
         strcpy(filepath, str.c_str());
         data = stbi_load(filepath, &width, &height, &channels, 4);
         glGenTextures(1, &HeightTex2);
@@ -377,7 +377,22 @@ public:
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
-
+        
+        //SkyTex
+        str = resourceDirectory + "/sky.jpg";
+        strcpy(filepath, str.c_str());
+        data = stbi_load(filepath, &width, &height, &channels, 4);
+        glGenTextures(1, &TextureSky);
+        glActiveTexture(GL_TEXTURE8);
+        glBindTexture(GL_TEXTURE_2D, TextureSky);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        
+        SkyTexLocation = glGetUniformLocation(heightshader->pid, "skytex");
 		GLuint Tex1Location = glGetUniformLocation(heightshader->pid, "n1");
 		GLuint Tex2Location = glGetUniformLocation(heightshader->pid, "h1");
         GLuint Tex3Location = glGetUniformLocation(heightshader->pid, "n2");
@@ -388,14 +403,15 @@ public:
         GLuint Tex8Location = glGetUniformLocation(heightshader->pid, "h4");
 		// Then bind the uniform samplers to texture units:
 		glUseProgram(heightshader->pid);
-		glUniform1i(Tex1Location, 1);
-		glUniform1i(Tex2Location, 0);
-        glUniform1i(Tex3Location, 3);
-        glUniform1i(Tex4Location, 2);
-        glUniform1i(Tex5Location, 5);
-        glUniform1i(Tex6Location, 4);
-        glUniform1i(Tex7Location, 7);
-        glUniform1i(Tex8Location, 6);
+		glUniform1i(Tex1Location, 0);
+		glUniform1i(Tex2Location, 1);
+        glUniform1i(Tex3Location, 2);
+        glUniform1i(Tex4Location, 3);
+        glUniform1i(Tex5Location, 4);
+        glUniform1i(Tex6Location, 5);
+        glUniform1i(Tex7Location, 6);
+        glUniform1i(Tex8Location, 7);
+        glUniform1i(SkyTexLocation, 8);
 
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -500,7 +516,7 @@ public:
         glUniformMatrix4fv(skyboxshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
         glUniform3fv(skyboxshader->getUniform("campos"), 1, &mycam.pos[0]);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, Texture2);
+        glBindTexture(GL_TEXTURE_2D, TextureSky);
         glDisable(GL_DEPTH_TEST);
         skybox->draw(skyboxshader, false);
         glEnable(GL_DEPTH_TEST);
@@ -513,7 +529,7 @@ public:
         texoff.x += .00005;
         texoff.y -= .00003;
         static vec2 texoff2 = vec2(0.,0.);
-        texoff2.x += .0002;
+        texoff2.x += .00035;
         glUniform2fv(heightshader->getUniform("texoff"), 1, &texoff[0]);
         glUniform2fv(heightshader->getUniform("texoff2"), 1, &texoff2[0]);
 //        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -534,21 +550,23 @@ public:
 		glBindVertexArray(VertexArrayID);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexBufferIDBox);
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, HeightTex);
-		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(GL_TEXTURE_2D, Texture);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, HeightTex);
         glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, HeightTex2);
-        glActiveTexture(GL_TEXTURE3);
         glBindTexture(GL_TEXTURE_2D, Texture2);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, HeightTex2);
         glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, HeightTex3);
-        glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_2D, Texture3);
+        glActiveTexture(GL_TEXTURE5);
+        glBindTexture(GL_TEXTURE_2D, HeightTex3);
         glActiveTexture(GL_TEXTURE6);
-        glBindTexture(GL_TEXTURE_2D, HeightTex4);
-        glActiveTexture(GL_TEXTURE7);
         glBindTexture(GL_TEXTURE_2D, Texture4);
+        glActiveTexture(GL_TEXTURE7);
+        glBindTexture(GL_TEXTURE_2D, HeightTex4);
+        glActiveTexture(GL_TEXTURE8);
+        glBindTexture(GL_TEXTURE_2D, TextureSky);
         
 		glDrawElements(GL_TRIANGLES, MESHSIZE*MESHSIZE*6, GL_UNSIGNED_SHORT, (void*)0);
 

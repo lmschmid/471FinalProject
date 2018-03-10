@@ -15,21 +15,23 @@ uniform sampler2D n3;
 uniform sampler2D h3;
 uniform sampler2D n4;
 uniform sampler2D h4;
+uniform sampler2D skytex;
 
 uniform vec3 camoff;
 uniform vec3 campos;
 
+// Normalize reflection vector and everything going into calculating reflection
 void main()
 {
-    vec3 norm1 = texture(n1, vertex_tex1).rbg;
+    vec3 norm1 = texture(n2, vertex_tex1).rbg;
     vec3 norm2 = texture(n2, vertex_tex2).rbg;
     vec3 norm3 = texture(n3, wave_tex3).rbg;
     vec3 norm4 = texture(n4, wave_tex4).rbg;
     
-    vec3 norm1R = (norm1+vec3(1,1,1))/2;
-    vec3 norm2R = (norm2+vec3(1,1,1))/2;
-    vec3 norm3R = (norm3+vec3(1,1,1))/2;
-    vec3 norm4R = (norm4+vec3(1,1,1))/2;
+    vec3 norm1R = (norm1+vec3(.5,.5,.5))*2;
+    vec3 norm2R = (norm2+vec3(.5,.5,.5))*2;
+    vec3 norm3R = (norm3+vec3(.5,.5,.5))*2;
+    vec3 norm4R = (norm4+vec3(.5,.5,.5))*2;
     
     vec3 normal = normalize(norm1R + norm2R + norm3R + norm4R);
     normal = vec3(normal.x, normal.z, normal.y);
@@ -42,12 +44,14 @@ void main()
     vec3 heightcolor3 = texture(h3, wave_tex3).rgb;
     vec3 heightcolor4 = texture(h4, wave_tex4).rgb;
 
-    heightcolor1.r = 0.1 + heightcolor1.r*0.9;
-    heightcolor2.r = 0.1 + heightcolor2.r*0.9;
-    heightcolor3.r = 0.1 + heightcolor3.r*0.9;
-    heightcolor4.r = 0.1 + heightcolor4.r*0.9;
+    heightcolor1.r = 0.1 + heightcolor1.r*0.5;
+    heightcolor2.r = 0.1 + heightcolor2.r*0.5;
+    heightcolor3.r = 0.1 + heightcolor3.r*0.5;
+    heightcolor4.r = 0.1 + heightcolor4.r*0.5;
     float hFactor = heightcolor1.r+heightcolor2.r+heightcolor3.r+heightcolor4.r;
-    vec3 oCol = vec3(.109,.419,1.);
+//    vec3 oCol = vec3(.109,.419,1.);
+    vec3 oCol = vec3(.17,.35,.94);
+//    vec3 oCol = vec3(.2,.5,1.);
     color.rgb = oCol*hFactor;
 
     float len = length(vertex_pos.xz+campos.xz);
@@ -57,7 +61,7 @@ void main()
     color.a=1-len;
 
     //spec light
-    vec3 lightp = vec3(0,10,-10);
+    vec3 lightp = vec3(0,5,-10);
     vec3 lightdir = normalize(lightp - vertex_pos);
     vec3 camdir = normalize(-campos-vertex_pos);
     vec3 h = normalize(lightdir + camdir);
@@ -68,5 +72,6 @@ void main()
     //diffuse
     float diffuse = dot(normal,lightdir);
 //    color*=diffuse/20;
+//    color = texture(skytex, wave_tex4);
 }
 
