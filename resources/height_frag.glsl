@@ -20,6 +20,18 @@ uniform sampler2D skytex;
 uniform vec3 camoff;
 uniform vec3 campos;
 
+float map(float value, float inMin, float inMax, float outMin, float outMax) {
+    return outMin + (outMax - outMin) * (value - inMin) / (inMax - inMin);
+}
+
+vec3 rotateX(vec3 v) {
+    float yt = v.y;
+    float angle = 45;
+    v.y = v.y*cos(angle)-v.z*sin(angle);
+    v.z = yt*sin(angle)+v.z*cos(angle);
+    return v;
+}
+
 // Normalize reflection vector and everything going into calculating reflection
 void main()
 {
@@ -28,31 +40,33 @@ void main()
     vec3 norm3 = texture(n3, wave_tex3).rbg;
     vec3 norm4 = texture(n4, wave_tex4).rbg;
     
-    vec3 norm1R = (norm1+vec3(.5,.5,.5))*2;
-    vec3 norm2R = (norm2+vec3(.5,.5,.5))*2;
-    vec3 norm3R = (norm3+vec3(.5,.5,.5))*2;
-    vec3 norm4R = (norm4+vec3(.5,.5,.5))*2;
-    
+    vec3 norm1R = (norm1-vec3(.5,.5,.5))*2;
+    vec3 norm2R = (norm2-vec3(.5,.5,.5))*2;
+    vec3 norm3R = (norm3-vec3(.5,.5,.5))*2;
+    vec3 norm4R = (norm4-vec3(.5,.5,.5))*2;
+
     vec3 normal = normalize(norm1R + norm2R + norm3R + norm4R);
+    normal = normalize(normal+vec3(0,0,10));
     normal = vec3(normal.x, normal.z, normal.y);
 
     vec2 texcoords1=vertex_tex1;
     vec2 texcoords2=vertex_tex2;
 
-    vec3 heightcolor1 = texture(h1, vertex_tex1).rgb;
-    vec3 heightcolor2 = texture(h2, vertex_tex2).rgb;
-    vec3 heightcolor3 = texture(h3, wave_tex3).rgb;
-    vec3 heightcolor4 = texture(h4, wave_tex4).rgb;
-
-    heightcolor1.r = 0.1 + heightcolor1.r*0.5;
-    heightcolor2.r = 0.1 + heightcolor2.r*0.5;
-    heightcolor3.r = 0.1 + heightcolor3.r*0.5;
-    heightcolor4.r = 0.1 + heightcolor4.r*0.5;
-    float hFactor = heightcolor1.r+heightcolor2.r+heightcolor3.r+heightcolor4.r;
-//    vec3 oCol = vec3(.109,.419,1.);
-    vec3 oCol = vec3(.17,.35,.94);
-//    vec3 oCol = vec3(.2,.5,1.);
-    color.rgb = oCol*hFactor;
+    // Calculating reflection from skybox
+    vec3 camdir = normalize(-campos-vertex_pos);
+    vec3 reflection = camdir-2*dot(camdir,normal)*normal;
+    reflection = normalize(reflection);
+    float sky_coordY = (reflection.y)/2 +.5;
+    float sky_coordX = reflection.z;
+    
+    if(reflection.x>0)
+        sky_coordX=2-sky_coordX;
+        
+    sky_coordX+=1;
+    sky_coordX/=-4;
+    
+    vec3 oCol = texture(skytex, vec2(1+sky_coordX, sky_coordY)).rgb;
+    color.rgb = oCol;
 
     float len = length(vertex_pos.xz+campos.xz);
     len-=41;
@@ -61,17 +75,11 @@ void main()
     color.a=1-len;
 
     //spec light
-    vec3 lightp = vec3(0,5,-10);
+    vec3 lightp = vec3(0,10,-100);
     vec3 lightdir = normalize(lightp - vertex_pos);
-    vec3 camdir = normalize(-campos-vertex_pos);
     vec3 h = normalize(lightdir + camdir);
     float spec = dot(normal, h);
     spec = clamp(spec, 0 , 1);
     spec = pow(spec, 10);
-    color.rgb += vec3(1,1,1)*spec;
-    //diffuse
-    float diffuse = dot(normal,lightdir);
-//    color*=diffuse/20;
-//    color = texture(skytex, wave_tex4);
+    color.rgb += vec3(1,1,1)*spec/3;
 }
-

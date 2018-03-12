@@ -11,4 +11,7 @@ void main()
 {
     vec4 tcol = texture(skytex, vertex_tex);
     color = tcol;
+//    color.r = vertex_tex.y;
+//    color.g = 0;
+//    color.b = 0;
 }

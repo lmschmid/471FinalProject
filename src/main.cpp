@@ -33,11 +33,11 @@ class camera
 {
 public:
 	glm::vec3 pos, rot;
-	int w, a, s, d;
+	int w, a, s, d, up, down;
 	camera()
 	{
-		w = a = s = d = 0;
-		pos = rot = glm::vec3(0, -4, -10);
+		w = a = s = d = up = down = 0;
+		pos = rot = glm::vec3(0, -4, -50);
 	}
 	glm::mat4 process(double ftime)
 	{
@@ -55,12 +55,20 @@ public:
 			yangle = -3*ftime;
 		else if(d==1)
 			yangle = 3*ftime;
+        
+        float rise = 0;
+        if(down == 1)
+            rise = 5*ftime;
+        else if(up == 1)
+            rise = -5*ftime;
+        
 		rot.y += yangle;
 		glm::mat4 R = glm::rotate(glm::mat4(1), rot.y, glm::vec3(0, 1, 0));
-		glm::vec4 dir = glm::vec4(0, 0, speed,1);
+		glm::vec4 dir = glm::vec4(0, rise, speed,1);
+//        glm::vec4 updir = glm::vec4(0, rise, 0,1);
 		dir = dir*R;
 		pos += glm::vec3(dir.x, dir.y, dir.z);
-		glm::mat4 T = glm::translate(glm::mat4(1), pos);
+        glm::mat4 T = glm::translate(glm::mat4(1), pos);
 		return R*T;
 	}
 };
@@ -130,6 +138,22 @@ public:
 		{
 			mycam.d = 0;
 		}
+        if(key == GLFW_KEY_UP && action == GLFW_PRESS)
+        {
+            mycam.up = 1;
+        }
+        if(key == GLFW_KEY_UP && action == GLFW_RELEASE)
+        {
+            mycam.up = 0;
+        }
+        if(key == GLFW_KEY_DOWN && action == GLFW_PRESS)
+        {
+            mycam.down = 1;
+        }
+        if(key == GLFW_KEY_DOWN && action == GLFW_RELEASE)
+        {
+            mycam.down = 0;
+        }
 	}
 
 	// callback for the mouse when clicked move the triangle when helper functions
@@ -567,9 +591,20 @@ public:
         glBindTexture(GL_TEXTURE_2D, HeightTex4);
         glActiveTexture(GL_TEXTURE8);
         glBindTexture(GL_TEXTURE_2D, TextureSky);
-        
+        glm::mat4 TransZAll = glm::translate(glm::mat4(1.0), glm::vec3(0,0, 20));
+        M = TransZAll * M;
+        glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glDrawElements(GL_TRIANGLES, MESHSIZE*MESHSIZE*6, GL_UNSIGNED_SHORT, (void*)0);
-
+        
+        glm::mat4 TransZB = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, 53));
+        glm::mat4 Mb = TransZB * M;
+        glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &Mb[0][0]);
+        glDrawElements(GL_TRIANGLES, MESHSIZE*MESHSIZE*6, GL_UNSIGNED_SHORT, (void*)0);
+        
+        glm::mat4 TransZF = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, -50));
+        glm::mat4 Mf = TransZF * M;
+        glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &Mf[0][0]);
+        glDrawElements(GL_TRIANGLES, MESHSIZE*MESHSIZE*6, GL_UNSIGNED_SHORT, (void*)0);
 		heightshader->unbind();
 
 	}
