@@ -29,6 +29,41 @@ double get_last_elapsed_time()
 	lasttime = actualtime;
 	return difference;
 }
+class EffectsManager
+{
+public:
+    float inc, dec, total, space, cycle;
+    
+    EffectsManager() {
+        inc = dec = space = 0;
+        total = 1;
+        cycle = -1;
+    }
+    
+    float manageWaves(double ftime) {
+        if(inc == 1) {
+            total += .6*ftime;
+        }
+        else if(dec == 1) {
+            if(total > 1) {
+                total += -.6*ftime;
+            }
+        }
+        return total;
+    }
+    
+    float manageCycle() {
+        if(space == 1) {
+            cycle+=.01;
+            
+        }
+        float v = std::sin(cycle);
+        v = (v+1)/2;
+        return (std::sin(cycle)+1)/2;
+    }
+};
+EffectsManager ev;
+
 class camera
 {
 public:
@@ -43,29 +78,28 @@ public:
 	{
 		float speed = 0;
 		if (w == 1)
-		{
 			speed = 10*ftime;
-		}
 		else if (s == 1)
-		{
 			speed = -10*ftime;
-		}
+        
 		float yangle=0;
 		if (a == 1)
 			yangle = -3*ftime;
 		else if(d==1)
 			yangle = 3*ftime;
         
-        float rise = 0;
-        if(down == 1)
-            rise = 5*ftime;
-        else if(up == 1)
-            rise = -5*ftime;
+        float xangle = 0;
+        if(up == 1)
+            xangle = -1*ftime;
+        else if(down == 1)
+            xangle = 1*ftime;
         
 		rot.y += yangle;
-		glm::mat4 R = glm::rotate(glm::mat4(1), rot.y, glm::vec3(0, 1, 0));
-		glm::vec4 dir = glm::vec4(0, rise, speed,1);
-//        glm::vec4 updir = glm::vec4(0, rise, 0,1);
+        rot.x += xangle;
+        glm::mat4 Rx = glm::rotate(glm::mat4(1), rot.x, glm::vec3(1, 0, 0));
+		glm::mat4 Ry = glm::rotate(glm::mat4(1), rot.y, glm::vec3(0, 1, 0));
+        glm::mat4 R = Rx*Ry;
+		glm::vec4 dir = glm::vec4(0, 0, speed,1);
 		dir = dir*R;
 		pos += glm::vec3(dir.x, dir.y, dir.z);
         glm::mat4 T = glm::translate(glm::mat4(1), pos);
@@ -96,8 +130,7 @@ public:
 	GLuint Texture2,HeightTex2;
     GLuint Texture3,HeightTex3;
     GLuint Texture4,HeightTex4;
-    GLuint OceanTex;
-    GLuint TextureSky;
+    GLuint TextureSky, TextureNight;
 
 	void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods)
 	{
@@ -153,6 +186,30 @@ public:
         if(key == GLFW_KEY_DOWN && action == GLFW_RELEASE)
         {
             mycam.down = 0;
+        }
+        if(key == GLFW_KEY_LEFT && action == GLFW_PRESS)
+        {
+            ev.dec = 1;
+        }
+        if(key == GLFW_KEY_LEFT && action == GLFW_RELEASE)
+        {
+            ev.dec = 0;
+        }
+        if(key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
+        {
+            ev.inc = 1;
+        }
+        if(key == GLFW_KEY_RIGHT && action == GLFW_RELEASE)
+        {
+            ev.inc = 0;
+        }
+        if(key == GLFW_KEY_SPACE && action == GLFW_PRESS)
+        {
+            ev.space = 1;
+        }
+        if(key == GLFW_KEY_SPACE && action == GLFW_RELEASE)
+        {
+            ev.space = 0;
         }
 	}
 
@@ -284,12 +341,29 @@ public:
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
         GLuint SkyTexLocation = glGetUniformLocation(skyboxshader->pid, "skytex");
+        
+        str = resourceDirectory + "/sky_night.jpg";
+        strcpy(filepath, str.c_str());
+        data = stbi_load(filepath, &width, &height, &channels, 4);
+        glGenTextures(1, &TextureNight);
+        glActiveTexture(GL_TEXTURE11);
+        glBindTexture(GL_TEXTURE_2D, TextureNight);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        GLuint NightTexLocation = glGetUniformLocation(skyboxshader->pid, "nighttex");
         // Then bind the uniform samplers to texture units:
         glUseProgram(skyboxshader->pid);
         glUniform1i(SkyTexLocation, 0);
+        glUniform1i(NightTexLocation, 11);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+        //***** Heightshader *******
+        glUseProgram(heightshader->pid);
 		//texture 1 normal map
 		str = resourceDirectory + "/nm1.png";
 		strcpy(filepath, str.c_str());
@@ -416,7 +490,22 @@ public:
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
         
-        SkyTexLocation = glGetUniformLocation(heightshader->pid, "skytex");
+        //SkyTexNIGHT
+        str = resourceDirectory + "/sky_night.jpg";
+        strcpy(filepath, str.c_str());
+        data = stbi_load(filepath, &width, &height, &channels, 4);
+        glGenTextures(1, &TextureNight);
+        glActiveTexture(GL_TEXTURE9);
+        glBindTexture(GL_TEXTURE_2D, TextureNight);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+        
+        GLuint NightTexLocation2 = glGetUniformLocation(heightshader->pid, "nighttex");
+        GLuint SkyTexLocation2 = glGetUniformLocation(heightshader->pid, "skytex");
 		GLuint Tex1Location = glGetUniformLocation(heightshader->pid, "n1");
 		GLuint Tex2Location = glGetUniformLocation(heightshader->pid, "h1");
         GLuint Tex3Location = glGetUniformLocation(heightshader->pid, "n2");
@@ -426,7 +515,6 @@ public:
         GLuint Tex7Location = glGetUniformLocation(heightshader->pid, "n4");
         GLuint Tex8Location = glGetUniformLocation(heightshader->pid, "h4");
 		// Then bind the uniform samplers to texture units:
-		glUseProgram(heightshader->pid);
 		glUniform1i(Tex1Location, 0);
 		glUniform1i(Tex2Location, 1);
         glUniform1i(Tex3Location, 2);
@@ -435,7 +523,8 @@ public:
         glUniform1i(Tex6Location, 5);
         glUniform1i(Tex7Location, 6);
         glUniform1i(Tex8Location, 7);
-        glUniform1i(SkyTexLocation, 8);
+        glUniform1i(SkyTexLocation2, 8);
+        glUniform1i(NightTexLocation2, 9);
 
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -465,6 +554,7 @@ public:
 		skyboxshader->addUniform("V");
 		skyboxshader->addUniform("M");
 		skyboxshader->addUniform("campos");
+        skyboxshader->addUniform("cycle");
 		skyboxshader->addAttribute("vertPos");
 		skyboxshader->addAttribute("vertNor");
 		skyboxshader->addAttribute("vertTex");
@@ -483,6 +573,8 @@ public:
 		heightshader->addUniform("M");
 		heightshader->addUniform("camoff");
 		heightshader->addUniform("campos");
+        heightshader->addUniform("cycle");
+        heightshader->addUniform("waveFactor");
         heightshader->addUniform("texoff");
         heightshader->addUniform("texoff2");
 		heightshader->addAttribute("vertPos");
@@ -535,10 +627,12 @@ public:
 
 		// Draw the box using GLSL.
 		skyboxshader->bind();
+        float cycle_factor = ev.manageCycle();
         glUniformMatrix4fv(skyboxshader->getUniform("P"), 1, GL_FALSE, &P[0][0]);
         glUniformMatrix4fv(skyboxshader->getUniform("V"), 1, GL_FALSE, &V[0][0]);
         glUniformMatrix4fv(skyboxshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
         glUniform3fv(skyboxshader->getUniform("campos"), 1, &mycam.pos[0]);
+        glUniform1fv(skyboxshader->getUniform("cycle"), 1, &cycle_factor);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, TextureSky);
         glDisable(GL_DEPTH_TEST);
@@ -547,13 +641,15 @@ public:
         skyboxshader->unbind();
 
 		heightshader->bind();
-        
+        float wave_factor = ev.manageWaves(frametime);
         // Moving simulated
         static vec2 texoff = vec2(0.,0.);
         texoff.x += .00005;
         texoff.y -= .00003;
         static vec2 texoff2 = vec2(0.,0.);
         texoff2.x += .00035;
+        glUniform1fv(heightshader->getUniform("cycle"), 1, &cycle_factor);
+        glUniform1fv(heightshader->getUniform("waveFactor"), 1, &wave_factor);
         glUniform2fv(heightshader->getUniform("texoff"), 1, &texoff[0]);
         glUniform2fv(heightshader->getUniform("texoff2"), 1, &texoff2[0]);
 //        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -591,12 +687,12 @@ public:
         glBindTexture(GL_TEXTURE_2D, HeightTex4);
         glActiveTexture(GL_TEXTURE8);
         glBindTexture(GL_TEXTURE_2D, TextureSky);
-        glm::mat4 TransZAll = glm::translate(glm::mat4(1.0), glm::vec3(0,0, 20));
+        glm::mat4 TransZAll = glm::translate(glm::mat4(1.0), glm::vec3(-100,0, 20));
         M = TransZAll * M;
         glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
 		glDrawElements(GL_TRIANGLES, MESHSIZE*MESHSIZE*6, GL_UNSIGNED_SHORT, (void*)0);
         
-        glm::mat4 TransZB = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, 53));
+        glm::mat4 TransZB = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, 50));
         glm::mat4 Mb = TransZB * M;
         glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &Mb[0][0]);
         glDrawElements(GL_TRIANGLES, MESHSIZE*MESHSIZE*6, GL_UNSIGNED_SHORT, (void*)0);
@@ -604,6 +700,16 @@ public:
         glm::mat4 TransZF = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, -50));
         glm::mat4 Mf = TransZF * M;
         glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &Mf[0][0]);
+        glDrawElements(GL_TRIANGLES, MESHSIZE*MESHSIZE*6, GL_UNSIGNED_SHORT, (void*)0);
+        
+        glm::mat4 TransL = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, 100));
+        glm::mat4 Ml = TransL * M;
+        glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &Ml[0][0]);
+        glDrawElements(GL_TRIANGLES, MESHSIZE*MESHSIZE*6, GL_UNSIGNED_SHORT, (void*)0);
+        
+        glm::mat4 TransR = glm::translate(glm::mat4(1.0), glm::vec3(0, 0, -100));
+        glm::mat4 Mr = TransR * M;
+        glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &Mr[0][0]);
         glDrawElements(GL_TRIANGLES, MESHSIZE*MESHSIZE*6, GL_UNSIGNED_SHORT, (void*)0);
 		heightshader->unbind();
 

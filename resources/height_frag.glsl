@@ -7,6 +7,8 @@ in vec2 vertex_tex2;
 in vec2 wave_tex3;
 in vec2 wave_tex4;
 
+uniform sampler2D nighttex;
+uniform sampler2D skytex;
 uniform sampler2D n1;
 uniform sampler2D h1;
 uniform sampler2D n2;
@@ -15,24 +17,11 @@ uniform sampler2D n3;
 uniform sampler2D h3;
 uniform sampler2D n4;
 uniform sampler2D h4;
-uniform sampler2D skytex;
 
 uniform vec3 camoff;
 uniform vec3 campos;
+uniform float cycle;
 
-float map(float value, float inMin, float inMax, float outMin, float outMax) {
-    return outMin + (outMax - outMin) * (value - inMin) / (inMax - inMin);
-}
-
-vec3 rotateX(vec3 v) {
-    float yt = v.y;
-    float angle = 45;
-    v.y = v.y*cos(angle)-v.z*sin(angle);
-    v.z = yt*sin(angle)+v.z*cos(angle);
-    return v;
-}
-
-// Normalize reflection vector and everything going into calculating reflection
 void main()
 {
     vec3 norm1 = texture(n2, vertex_tex1).rbg;
@@ -46,7 +35,7 @@ void main()
     vec3 norm4R = (norm4-vec3(.5,.5,.5))*2;
 
     vec3 normal = normalize(norm1R + norm2R + norm3R + norm4R);
-    normal = normalize(normal+vec3(0,0,10));
+    normal = normalize(normal+vec3(0,0,15));
     normal = vec3(normal.x, normal.z, normal.y);
 
     vec2 texcoords1=vertex_tex1;
@@ -65,21 +54,26 @@ void main()
     sky_coordX+=1;
     sky_coordX/=-4;
     
-    vec3 oCol = texture(skytex, vec2(1+sky_coordX, sky_coordY)).rgb;
-    color.rgb = oCol;
+    vec3 scol = texture(skytex, vec2(1+sky_coordX, sky_coordY)).rgb;
+    vec3 ncol = texture(nighttex, vec2(1+sky_coordX, sky_coordY)).rgb;
+    vec3 combo = scol*(1-cycle) + ncol*cycle;
+    
+//    vec3 oCol = texture(skytex, vec2(1+sky_coordX, sky_coordY)).rgb;
+    color.rgb = combo;
 
     float len = length(vertex_pos.xz+campos.xz);
     len-=41;
     len/=8.;
-    len=clamp(len,0,1);
+    len=clamp(len,0,.2);
     color.a=1-len;
 
     //spec light
-    vec3 lightp = vec3(0,10,-100);
+    vec3 lightp = vec3(-80,50,100);
     vec3 lightdir = normalize(lightp - vertex_pos);
     vec3 h = normalize(lightdir + camdir);
     float spec = dot(normal, h);
     spec = clamp(spec, 0 , 1);
     spec = pow(spec, 10);
+
     color.rgb += vec3(1,1,1)*spec/3;
 }

@@ -22,6 +22,7 @@ uniform sampler2D n4;
 uniform sampler2D h4;
 
 uniform vec3 camoff;
+uniform float waveFactor;
 
 void main()
 {
@@ -40,10 +41,10 @@ void main()
     texcoords3 += vec2(0.,texoff2.x-.0001);
     texcoords4 += texoff2;
     
-	float height1 = texture(h2, texcoords1).r /2;
+	float height1 = texture(h2, texcoords1).r/2;
     float height2 = texture(h2, texcoords2).r/2;
-    float height3 = texture(h3, texcoords3).r;
-    float height4 = texture(h4, texcoords4).r;
+    float height3 = texture(h3, texcoords3).r*waveFactor;
+    float height4 = texture(h4, texcoords4).r*waveFactor;
     float tHeight = height1+height2+height3+height4;
     
 	vec4 tpos =  vec4(vertPos, 1.0);

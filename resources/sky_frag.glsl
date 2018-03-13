@@ -3,15 +3,16 @@ out vec4 color;
 in vec3 vertex_normal;
 in vec3 vertex_pos;
 in vec2 vertex_tex;
-uniform vec3 campos;
+uniform float cycle;
 
 uniform sampler2D skytex;
+uniform sampler2D nighttex;
 
 void main()
 {
-    vec4 tcol = texture(skytex, vertex_tex);
-    color = tcol;
-//    color.r = vertex_tex.y;
-//    color.g = 0;
-//    color.b = 0;
+    vec4 scol = texture(skytex, vertex_tex);
+    vec4 ncol = texture(nighttex, vertex_tex);
+    
+    vec4 combo = scol*(1-cycle) + ncol*cycle;
+    color = combo;
 }
