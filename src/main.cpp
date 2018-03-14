@@ -57,8 +57,6 @@ public:
             cycle+=.01;
             
         }
-        float v = std::sin(cycle);
-        v = (v+1)/2;
         return (std::sin(cycle)+1)/2;
     }
 };
@@ -312,13 +310,6 @@ public:
 		string resourceDirectory = "../../resources";
 		int width, height, channels;
 		char filepath[1000];
-        // *************************************************
-        // Boat
-        // *************************************************
-        boat = make_shared<Shape>();
-        boat->loadMesh(resourceDirectory + "/SeaAngler.obj");
-        boat->resize();
-        boat->init();
         
         // *************************************************
         // Skybox
@@ -637,7 +628,7 @@ public:
         glBindTexture(GL_TEXTURE_2D, TextureSky);
         glDisable(GL_DEPTH_TEST);
         skybox->draw(skyboxshader, false);
-        glEnable(GL_DEPTH_TEST);
+//        glEnable(GL_DEPTH_TEST);
         skyboxshader->unbind();
 
 		heightshader->bind();
