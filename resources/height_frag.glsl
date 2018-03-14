@@ -21,6 +21,7 @@ uniform sampler2D h4;
 uniform vec3 camoff;
 uniform vec3 campos;
 uniform float cycle;
+uniform float waveFactor;
 
 void main()
 {
@@ -35,7 +36,9 @@ void main()
     vec3 norm4R = (norm4-vec3(.5,.5,.5))*2;
 
     vec3 normal = normalize(norm1R + norm2R + norm3R + norm4R);
-    normal = normalize(normal+vec3(0,0,15));
+    float baseR = 15.0;
+    float r = baseR-((waveFactor-1)*1.5);
+    normal = normalize(normal+vec3(0,0,r));
     normal = vec3(normal.x, normal.z, normal.y);
 
     vec2 texcoords1=vertex_tex1;
@@ -64,7 +67,7 @@ void main()
     float len = length(vertex_pos.xz+campos.xz);
     len-=41;
     len/=8.;
-    len=clamp(len,0,.2);
+    len=clamp(len,0,.1);
     color.a=1-len;
 
     //spec light
