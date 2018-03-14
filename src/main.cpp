@@ -17,9 +17,7 @@ CPE/CSC 471 Lab base code Wood/Dunn/Eckhardt
 #include <glm/gtc/matrix_transform.hpp>
 using namespace std;
 using namespace glm;
-shared_ptr<Shape> boat;
 shared_ptr<Shape> skybox;
-
 
 double get_last_elapsed_time()
 {
@@ -337,7 +335,7 @@ public:
         strcpy(filepath, str.c_str());
         data = stbi_load(filepath, &width, &height, &channels, 4);
         glGenTextures(1, &TextureNight);
-        glActiveTexture(GL_TEXTURE11);
+        glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, TextureNight);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -349,11 +347,13 @@ public:
         // Then bind the uniform samplers to texture units:
         glUseProgram(skyboxshader->pid);
         glUniform1i(SkyTexLocation, 0);
-        glUniform1i(NightTexLocation, 11);
+        glUniform1i(NightTexLocation, 1);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        //***** Heightshader *******
+        // ******************************
+        //Heightshader
+        // ******************************
         glUseProgram(heightshader->pid);
 		//texture 1 normal map
 		str = resourceDirectory + "/nm1.png";
@@ -467,34 +467,6 @@ public:
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
         
-        //SkyTex
-        str = resourceDirectory + "/sky.jpg";
-        strcpy(filepath, str.c_str());
-        data = stbi_load(filepath, &width, &height, &channels, 4);
-        glGenTextures(1, &TextureSky);
-        glActiveTexture(GL_TEXTURE8);
-        glBindTexture(GL_TEXTURE_2D, TextureSky);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        
-        //SkyTexNIGHT
-        str = resourceDirectory + "/sky_night.jpg";
-        strcpy(filepath, str.c_str());
-        data = stbi_load(filepath, &width, &height, &channels, 4);
-        glGenTextures(1, &TextureNight);
-        glActiveTexture(GL_TEXTURE9);
-        glBindTexture(GL_TEXTURE_2D, TextureNight);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-        
         GLuint NightTexLocation2 = glGetUniformLocation(heightshader->pid, "nighttex");
         GLuint SkyTexLocation2 = glGetUniformLocation(heightshader->pid, "skytex");
 		GLuint Tex1Location = glGetUniformLocation(heightshader->pid, "n1");
@@ -532,7 +504,7 @@ public:
 		// Enable z-buffer test.
 		glEnable(GL_DEPTH_TEST);
 
-		// Initialize the GLSL program.
+		// Initialize the SkyBox program.
 		skyboxshader = std::make_shared<Program>();
 		skyboxshader->setVerbose(true);
 		skyboxshader->setShaderNames(resourceDirectory + "/sky_vert.glsl", resourceDirectory + "/sky_frag.glsl");
@@ -550,7 +522,7 @@ public:
 		skyboxshader->addAttribute("vertNor");
 		skyboxshader->addAttribute("vertTex");
 
-		// Initialize the GLSL program.
+		// Initialize the Wave program.
 		heightshader = std::make_shared<Program>();
 		heightshader->setVerbose(true);
 		heightshader->setShaderNames(resourceDirectory + "/height_vertex.glsl", resourceDirectory + "/height_frag.glsl");
@@ -626,9 +598,10 @@ public:
         glUniform1fv(skyboxshader->getUniform("cycle"), 1, &cycle_factor);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, TextureSky);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, TextureNight);
         glDisable(GL_DEPTH_TEST);
         skybox->draw(skyboxshader, false);
-//        glEnable(GL_DEPTH_TEST);
         skyboxshader->unbind();
 
 		heightshader->bind();
@@ -643,7 +616,6 @@ public:
         glUniform1fv(heightshader->getUniform("waveFactor"), 1, &wave_factor);
         glUniform2fv(heightshader->getUniform("texoff"), 1, &texoff[0]);
         glUniform2fv(heightshader->getUniform("texoff2"), 1, &texoff2[0]);
-//        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glm::mat4 S = glm::scale(glm::mat4(1.0f), glm::vec3(1.,1.,1.));
 		glm::mat4 TransY = glm::translate(glm::mat4(1.0f), glm::vec3(-50.0f, -3.0f, -50));
 		M = TransY*S;
@@ -678,6 +650,8 @@ public:
         glBindTexture(GL_TEXTURE_2D, HeightTex4);
         glActiveTexture(GL_TEXTURE8);
         glBindTexture(GL_TEXTURE_2D, TextureSky);
+        glActiveTexture(GL_TEXTURE9);
+        glBindTexture(GL_TEXTURE_2D, TextureNight);
         glm::mat4 TransZAll = glm::translate(glm::mat4(1.0), glm::vec3(-100,0, 20));
         M = TransZAll * M;
         glUniformMatrix4fv(heightshader->getUniform("M"), 1, GL_FALSE, &M[0][0]);
